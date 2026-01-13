@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Instructions for pushing to GitHub
+echo "================================"
+echo "GitHub Push Instructions"
+echo "================================"
+echo ""
+echo "1. Get your Personal Access Token:"
+echo "   https://github.com/settings/tokens"
+echo ""
+echo "2. Click 'Generate new token (classic)'"
+echo ""
+echo "3. Check the 'repo' scope"
+echo ""
+echo "4. Copy the generated token (starts with ghp_)"
+echo ""
+echo "5. Run these commands (replace YOUR_TOKEN):"
+echo ""
+echo "   cd /Users/raghav/habit-tracker"
+echo "   git remote set-url origin https://YOUR_TOKEN@github.com/Raghav101094/habit-tracker.git"
+echo "   git push -u origin main"
+echo ""
+echo "================================"
