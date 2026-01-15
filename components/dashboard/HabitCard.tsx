@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase-browser'
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns'
 import { Flame, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import EditHabitDialog from './EditHabitDialog'
 
 interface HabitCardProps {
   habit: Habit
@@ -15,9 +16,10 @@ interface HabitCardProps {
   loading: boolean
   onToggle: () => void
   onRefresh: () => void
+  onUpdate: (id: string, name: string, icon: string, color: string, startDate: string) => Promise<void>
 }
 
-export default function HabitCard({ habit, completed, loading, onToggle, onRefresh }: HabitCardProps) {
+export default function HabitCard({ habit, completed, loading, onToggle, onRefresh, onUpdate }: HabitCardProps) {
   const [streak, setStreak] = useState(0)
   const [monthlyCompletion, setMonthlyCompletion] = useState(0)
   const supabase = createClient()
@@ -108,12 +110,16 @@ export default function HabitCard({ habit, completed, loading, onToggle, onRefre
           />
 
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-1">
               <span className="text-2xl">{habit.icon}</span>
               <h3 className="text-lg font-semibold">{habit.name}</h3>
             </div>
 
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            <div className="text-xs text-muted-foreground mb-2 ml-9">
+              Since {format(new Date(habit.start_date), 'MMM d, yyyy')}
+            </div>
+
+            <div className="flex items-center gap-6 text-sm text-muted-foreground ml-9">
               <div className="flex items-center gap-1">
                 <Flame className="w-4 h-4 text-orange-500" />
                 <span className="font-medium">{streak}</span>
@@ -128,14 +134,17 @@ export default function HabitCard({ habit, completed, loading, onToggle, onRefre
           </div>
         </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleDelete}
-          className="text-muted-foreground hover:text-red-500"
-        >
-          <Trash2 className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <EditHabitDialog habit={habit} onUpdate={onUpdate} />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleDelete}
+            className="text-muted-foreground hover:text-red-500"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
     </Card>
   )

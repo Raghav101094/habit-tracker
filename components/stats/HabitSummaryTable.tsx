@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { Habit } from '@/types/database'
-import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns'
-import { Check, X } from 'lucide-react'
+import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, startOfYear } from 'date-fns'
+import { Check, X, Minus } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 
 interface HabitSummaryTableProps {
@@ -14,8 +14,9 @@ interface HabitSummaryTableProps {
 
 interface HabitStats {
   habitId: string
-  last10Days: boolean[]
+  last10Days: (boolean | null)[] // null = before start date
   monthlyPercentage: number
+  ytdPercentage: number
   longestStreak: number
 }
 
@@ -33,7 +34,7 @@ export default function HabitSummaryTable({ habits, userId }: HabitSummaryTableP
     const newStats: Record<string, HabitStats> = {}
 
     for (const habit of habits) {
-      const habitStats = await calculateHabitStats(habit.id)
+      const habitStats = await calculateHabitStats(habit.id, habit.start_date)
       newStats[habit.id] = habitStats
     }
 
@@ -41,8 +42,9 @@ export default function HabitSummaryTable({ habits, userId }: HabitSummaryTableP
     setLoading(false)
   }
 
-  const calculateHabitStats = async (habitId: string): Promise<HabitStats> => {
+  const calculateHabitStats = async (habitId: string, startDate: string): Promise<HabitStats> => {
     const today = new Date()
+    const habitStartDate = new Date(startDate)
 
     // Get last 10 days
     const last10DaysDates = Array.from({ length: 10 }, (_, i) =>
@@ -61,12 +63,22 @@ export default function HabitSummaryTable({ habits, userId }: HabitSummaryTableP
       last10Map[log.date] = log.completed
     })
 
-    const last10Days = last10DaysDates.map(date => last10Map[date] || false)
+    // Map to boolean or null (null = before start date)
+    const last10Days = last10DaysDates.map(date => {
+      const dateObj = new Date(date)
+      if (dateObj < habitStartDate) {
+        return null // Before start date = grey dash
+      }
+      return last10Map[date] || false
+    })
 
-    // Get monthly stats
+    // Get monthly stats (only count days after start date)
     const monthStart = startOfMonth(today)
     const monthEnd = endOfMonth(today)
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd })
+
+    // Filter to only days after or on start date
+    const validMonthDays = daysInMonth.filter(d => d >= habitStartDate)
 
     const { data: monthLogs } = await supabase
       .from('habit_logs')
@@ -76,7 +88,9 @@ export default function HabitSummaryTable({ habits, userId }: HabitSummaryTableP
       .lte('date', format(monthEnd, 'yyyy-MM-dd'))
 
     const completedDays = monthLogs?.filter(log => log.completed).length || 0
-    const monthlyPercentage = Math.round((completedDays / daysInMonth.length) * 100)
+    const monthlyPercentage = validMonthDays.length > 0
+      ? Math.round((completedDays / validMonthDays.length) * 100)
+      : 0
 
     // Calculate longest streak in last month
     const monthDates = daysInMonth.map(d => format(d, 'yyyy-MM-dd'))
@@ -97,10 +111,30 @@ export default function HabitSummaryTable({ habits, userId }: HabitSummaryTableP
       }
     }
 
+    // Calculate YTD (Year-to-Date) percentage
+    const yearStart = startOfYear(today)
+    // YTD starts from the later of: year start OR habit start date
+    const ytdStart = habitStartDate > yearStart ? habitStartDate : yearStart
+    const ytdEnd = today
+    const daysInYtd = eachDayOfInterval({ start: ytdStart, end: ytdEnd })
+
+    const { data: ytdLogs } = await supabase
+      .from('habit_logs')
+      .select('date, completed')
+      .eq('habit_id', habitId)
+      .gte('date', format(ytdStart, 'yyyy-MM-dd'))
+      .lte('date', format(ytdEnd, 'yyyy-MM-dd'))
+
+    const ytdCompletedDays = ytdLogs?.filter(log => log.completed).length || 0
+    const ytdPercentage = daysInYtd.length > 0
+      ? Math.round((ytdCompletedDays / daysInYtd.length) * 100)
+      : 0
+
     return {
       habitId,
       last10Days,
       monthlyPercentage,
+      ytdPercentage,
       longestStreak,
     }
   }
@@ -156,6 +190,10 @@ export default function HabitSummaryTable({ habits, userId }: HabitSummaryTableP
                 <div>Monthly</div>
                 <div className="text-xs font-normal text-muted-foreground">Completion</div>
               </th>
+              <th className="text-center p-4 font-semibold min-w-[120px] bg-green-50 dark:bg-green-950/30">
+                <div>Year (YTD)</div>
+                <div className="text-xs font-normal text-muted-foreground">Completion</div>
+              </th>
               <th className="text-center p-4 font-semibold min-w-[120px] bg-purple-50 dark:bg-purple-950/30">
                 <div>Longest</div>
                 <div className="text-xs font-normal text-muted-foreground">Streak</div>
@@ -188,7 +226,11 @@ export default function HabitSummaryTable({ habits, userId }: HabitSummaryTableP
                   </td>
                   {habitStats.last10Days.map((completed, dayIndex) => (
                     <td key={dayIndex} className="text-center p-2">
-                      {completed ? (
+                      {completed === null ? (
+                        <div className="inline-flex items-center justify-center w-8 h-8">
+                          <Minus className="w-5 h-5 text-gray-300 dark:text-gray-600" />
+                        </div>
+                      ) : completed ? (
                         <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30">
                           <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
                         </div>
@@ -214,6 +256,21 @@ export default function HabitSummaryTable({ habits, userId }: HabitSummaryTableP
                       </span>
                     </div>
                   </td>
+                  <td className="text-center p-4 font-semibold text-lg bg-green-50/50 dark:bg-green-950/20">
+                    <div className="flex items-center justify-center gap-1">
+                      <span
+                        className={
+                          habitStats.ytdPercentage >= 80
+                            ? 'text-green-600 dark:text-green-400'
+                            : habitStats.ytdPercentage >= 50
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-red-600 dark:text-red-400'
+                        }
+                      >
+                        {habitStats.ytdPercentage}%
+                      </span>
+                    </div>
+                  </td>
                   <td className="text-center p-4 font-semibold text-lg bg-purple-50/50 dark:bg-purple-950/20">
                     <div className="flex items-center justify-center gap-1">
                       {habitStats.longestStreak > 0 && (
@@ -233,7 +290,7 @@ export default function HabitSummaryTable({ habits, userId }: HabitSummaryTableP
       </div>
 
       {/* Legend */}
-      <div className="flex items-center justify-center gap-6 p-4 border-t bg-muted/30 text-sm">
+      <div className="flex items-center justify-center gap-6 p-4 border-t bg-muted/30 text-sm flex-wrap">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
             <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
@@ -245,6 +302,12 @@ export default function HabitSummaryTable({ habits, userId }: HabitSummaryTableP
             <X className="w-4 h-4 text-red-600 dark:text-red-400" />
           </div>
           <span className="text-muted-foreground">Missed</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 flex items-center justify-center">
+            <Minus className="w-4 h-4 text-gray-300 dark:text-gray-600" />
+          </div>
+          <span className="text-muted-foreground">Before start date</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-orange-500">🔥</span>

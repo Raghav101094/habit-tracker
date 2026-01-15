@@ -7,9 +7,10 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, subMonths } from '
 interface CalendarHeatmapProps {
   habitId: string
   userId: string
+  startDate: string // Date when user started tracking this habit (YYYY-MM-DD)
 }
 
-export default function CalendarHeatmap({ habitId, userId }: CalendarHeatmapProps) {
+export default function CalendarHeatmap({ habitId, userId, startDate }: CalendarHeatmapProps) {
   const [logs, setLogs] = useState<Record<string, boolean>>({})
   const supabase = createClient()
 
@@ -68,19 +69,28 @@ export default function CalendarHeatmap({ habitId, userId }: CalendarHeatmapProp
               const dateStr = format(day, 'yyyy-MM-dd')
               const isCompleted = logs[dateStr]
               const isFuture = day > new Date()
+              const isBeforeStart = day < new Date(startDate)
 
               return (
                 <div
                   key={dateStr}
                   className={`aspect-square rounded-sm transition-all ${
-                    isFuture
+                    isBeforeStart
+                      ? 'bg-gray-200 dark:bg-gray-700'
+                      : isFuture
                       ? 'bg-gray-100 dark:bg-gray-800'
                       : isCompleted
                       ? 'bg-green-500 hover:bg-green-600'
                       : 'bg-red-200 dark:bg-red-900/30 hover:bg-red-300'
                   }`}
                   title={`${format(day, 'MMM d')} - ${
-                    isFuture ? 'Future' : isCompleted ? 'Completed' : 'Missed'
+                    isBeforeStart
+                      ? 'Before start date'
+                      : isFuture
+                      ? 'Future'
+                      : isCompleted
+                      ? 'Completed'
+                      : 'Missed'
                   }`}
                 />
               )
@@ -88,7 +98,7 @@ export default function CalendarHeatmap({ habitId, userId }: CalendarHeatmapProp
           </div>
         </div>
       ))}
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+      <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-green-500 rounded-sm" />
           <span>Completed</span>
@@ -96,6 +106,10 @@ export default function CalendarHeatmap({ habitId, userId }: CalendarHeatmapProp
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-red-200 dark:bg-red-900/30 rounded-sm" />
           <span>Missed</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-gray-200 dark:bg-gray-700 rounded-sm" />
+          <span>Before start date</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-gray-100 dark:bg-gray-800 rounded-sm" />

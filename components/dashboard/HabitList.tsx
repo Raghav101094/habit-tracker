@@ -10,9 +10,10 @@ interface HabitListProps {
   userId: string
   selectedDate: string
   onRefresh: () => void
+  onUpdate: (id: string, name: string, icon: string, color: string, startDate: string) => Promise<void>
 }
 
-export default function HabitList({ habits, userId, selectedDate, onRefresh }: HabitListProps) {
+export default function HabitList({ habits, userId, selectedDate, onRefresh, onUpdate }: HabitListProps) {
   const [logs, setLogs] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState<Record<string, boolean>>({})
   const supabase = createClient()
@@ -85,6 +86,7 @@ export default function HabitList({ habits, userId, selectedDate, onRefresh }: H
           loading={loading[habit.id] || false}
           onToggle={() => toggleHabit(habit.id)}
           onRefresh={onRefresh}
+          onUpdate={onUpdate}
         />
       ))}
     </div>

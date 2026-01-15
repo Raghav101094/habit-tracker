@@ -49,7 +49,7 @@ export default function DashboardClient({ user, initialHabits }: DashboardClient
     setLoading(false)
   }
 
-  const handleAddHabit = async (name: string, icon: string, color: string) => {
+  const handleAddHabit = async (name: string, icon: string, color: string, startDate: string) => {
     const { error } = await supabase
       .from('habits')
       .insert([
@@ -58,8 +58,26 @@ export default function DashboardClient({ user, initialHabits }: DashboardClient
           name,
           icon,
           color,
+          start_date: startDate,
         },
       ])
+
+    if (!error) {
+      await refreshHabits()
+    }
+  }
+
+  const handleUpdateHabit = async (id: string, name: string, icon: string, color: string, startDate: string) => {
+    const { error } = await supabase
+      .from('habits')
+      .update({
+        name,
+        icon,
+        color,
+        start_date: startDate,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
 
     if (!error) {
       await refreshHabits()
@@ -115,6 +133,7 @@ export default function DashboardClient({ user, initialHabits }: DashboardClient
                 userId={user.id}
                 selectedDate={format(selectedDate, 'yyyy-MM-dd')}
                 onRefresh={refreshHabits}
+                onUpdate={handleUpdateHabit}
               />
             </TabsContent>
 
@@ -139,7 +158,7 @@ export default function DashboardClient({ user, initialHabits }: DashboardClient
                         <CardDescription>Last 3 months activity</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <CalendarHeatmap habitId={habit.id} userId={user.id} />
+                        <CalendarHeatmap habitId={habit.id} userId={user.id} startDate={habit.start_date} />
                       </CardContent>
                     </Card>
                   ))}

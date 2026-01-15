@@ -5,6 +5,7 @@ export interface Habit {
   icon: string
   color: string
   archived: boolean
+  start_date: string // Date when user started tracking this habit (YYYY-MM-DD)
   created_at: string
   updated_at: string
 }
