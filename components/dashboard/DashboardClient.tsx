@@ -85,14 +85,14 @@ export default function DashboardClient({ user, initialHabits }: DashboardClient
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-gray-900 dark:to-gray-800">
       <Header user={user} onLogout={handleLogout} />
 
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="flex flex-col gap-4 mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Habit Tracker</h1>
+              <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-teal-600 to-cyan-600 text-transparent bg-clip-text">Daily Do</h1>
               <p className="text-muted-foreground">
                 Track your habits and build streaks
               </p>

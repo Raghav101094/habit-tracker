@@ -1,9 +1,10 @@
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
+    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gradient-to-br from-teal-50 to-cyan-50 dark:from-gray-900 dark:to-gray-800">
       <div className="text-center">
-        <h1 className="text-6xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
-          Habit Tracker
+        <img src="/icon-192.png" alt="Daily Do" className="w-24 h-24 mx-auto mb-6" />
+        <h1 className="text-6xl font-bold mb-4 bg-gradient-to-r from-teal-500 to-cyan-500 text-transparent bg-clip-text">
+          Daily Do
         </h1>
         <p className="text-xl text-muted-foreground mb-8">
           Build better habits, one day at a time

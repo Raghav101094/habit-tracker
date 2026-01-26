@@ -1,0 +1,43 @@
+{
+  "name": "Daily Do - Habit Tracker",
+  "short_name": "Daily Do",
+  "description": "Track your daily habits, build streaks, and improve your life one day at a time.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f5f5f0",
+  "theme_color": "#0d9488",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon-16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "lifestyle", "health"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Today's Habits",
+      "url": "/dashboard",
+      "description": "View and track today's habits"
+    }
+  ]
+}
