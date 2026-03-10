@@ -67,7 +67,16 @@ export default function DashboardClient({ user, initialHabits }: DashboardClient
     }
   }
 
-  const handleUpdateHabit = async (id: string, name: string, icon: string, color: string, startDate: string) => {
+  const handleUpdateHabit = async (
+    id: string,
+    name: string,
+    icon: string,
+    color: string,
+    startDate: string,
+    countEnabled: boolean,
+    countMax: number | null,
+    durationEnabled: boolean
+  ) => {
     const { error } = await supabase
       .from('habits')
       .update({
@@ -75,6 +84,9 @@ export default function DashboardClient({ user, initialHabits }: DashboardClient
         icon,
         color,
         start_date: startDate,
+        count_enabled: countEnabled,
+        count_max: countEnabled ? countMax : null,
+        duration_enabled: durationEnabled,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
@@ -158,7 +170,14 @@ export default function DashboardClient({ user, initialHabits }: DashboardClient
                         <CardDescription>Last 3 months activity</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <CalendarHeatmap habitId={habit.id} userId={user.id} startDate={habit.start_date} />
+                        <CalendarHeatmap
+                          habitId={habit.id}
+                          userId={user.id}
+                          startDate={habit.start_date}
+                          countEnabled={habit.count_enabled}
+                          countMax={habit.count_max}
+                          durationEnabled={habit.duration_enabled}
+                        />
                       </CardContent>
                     </Card>
                   ))}

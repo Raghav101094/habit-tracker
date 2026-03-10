@@ -4,16 +4,25 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, subMonths, startOfWeek } from 'date-fns'
 import { ChevronDown, ChevronUp } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatDuration } from '@/lib/utils'
+
+interface LogEntry {
+  completed: boolean
+  count: number | null
+  duration: number | null
+}
 
 interface CalendarHeatmapProps {
   habitId: string
   userId: string
-  startDate: string // Date when user started tracking this habit (YYYY-MM-DD)
+  startDate: string // YYYY-MM-DD
+  countEnabled: boolean
+  countMax: number | null
+  durationEnabled: boolean
 }
 
-export default function CalendarHeatmap({ habitId, startDate }: CalendarHeatmapProps) {
-  const [logs, setLogs] = useState<Record<string, boolean>>({})
+export default function CalendarHeatmap({ habitId, startDate, countEnabled, durationEnabled }: CalendarHeatmapProps) {
+  const [logs, setLogs] = useState<Record<string, LogEntry>>({})
   const [isExpanded, setIsExpanded] = useState(false)
   const supabase = createClient()
 
@@ -27,15 +36,19 @@ export default function CalendarHeatmap({ habitId, startDate }: CalendarHeatmapP
 
     const { data } = await supabase
       .from('habit_logs')
-      .select('date, completed')
+      .select('date, completed, count, duration')
       .eq('habit_id', habitId)
       .gte('date', format(threeMonthsAgo, 'yyyy-MM-dd'))
       .lte('date', format(today, 'yyyy-MM-dd'))
 
     if (data) {
-      const logsMap: Record<string, boolean> = {}
+      const logsMap: Record<string, LogEntry> = {}
       data.forEach((log) => {
-        logsMap[log.date] = log.completed
+        logsMap[log.date] = {
+          completed: log.completed,
+          count: log.count ?? null,
+          duration: log.duration ?? null,
+        }
       })
       setLogs(logsMap)
     }
@@ -88,15 +101,26 @@ export default function CalendarHeatmap({ habitId, startDate }: CalendarHeatmapP
     const dateStr = format(day, 'yyyy-MM-dd')
     return dateStr >= startDate && dateStr <= todayStr
   })
-  const completedCount = validDays.filter(day => logs[format(day, 'yyyy-MM-dd')]).length
+  const completedCount = validDays.filter(day => logs[format(day, 'yyyy-MM-dd')]?.completed).length
   const completionRate = validDays.length > 0 ? Math.round((completedCount / validDays.length) * 100) : 0
+
+  // Count/duration aggregate stats
+  const totalCount = countEnabled
+    ? validDays.reduce((sum, day) => sum + (logs[format(day, 'yyyy-MM-dd')]?.count ?? 0), 0)
+    : 0
+  const avgCount = validDays.length > 0 ? (totalCount / validDays.length).toFixed(1) : '0'
+
+  const totalDuration = durationEnabled
+    ? validDays.reduce((sum, day) => sum + (logs[format(day, 'yyyy-MM-dd')]?.duration ?? 0), 0)
+    : 0
+  const avgDurationMin = validDays.length > 0 ? (totalDuration / validDays.length).toFixed(1) : '0'
 
   const getDayStatus = (day: Date | null) => {
     if (!day) return 'empty'
     const dateStr = format(day, 'yyyy-MM-dd')
     const isBeforeStart = dateStr < startDate
     const isFuture = dateStr > todayStr
-    const isCompleted = logs[dateStr]
+    const isCompleted = logs[dateStr]?.completed
 
     if (isBeforeStart) return 'before-start'
     if (isFuture) return 'future'
@@ -146,6 +170,20 @@ export default function CalendarHeatmap({ habitId, startDate }: CalendarHeatmapP
             {completedCount}/{validDays.length} days ({completionRate}%)
           </span>
         </div>
+
+        {/* Count / duration aggregate stats */}
+        {countEnabled && (
+          <div className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{totalCount} times total</span>
+            {' · '}avg {avgCount}/day
+          </div>
+        )}
+        {durationEnabled && (
+          <div className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">{formatDuration(totalDuration)}</span>
+            {' total · '}avg {avgDurationMin} min/day
+          </div>
+        )}
 
         {/* GitHub-style contribution graph */}
         <div className="overflow-x-auto pb-2">

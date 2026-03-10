@@ -23,7 +23,16 @@ import type { Habit } from '@/types/database'
 
 interface EditHabitDialogProps {
   habit: Habit
-  onUpdate: (id: string, name: string, icon: string, color: string, startDate: string) => Promise<void>
+  onUpdate: (
+    id: string,
+    name: string,
+    icon: string,
+    color: string,
+    startDate: string,
+    countEnabled: boolean,
+    countMax: number | null,
+    durationEnabled: boolean
+  ) => Promise<void>
 }
 
 const EMOJI_OPTIONS = ['🧘', '💪', '📚', '📰', '🚭', '💧', '🏃', '✍️', '🎯', '🌱', '😴', '🍎']
@@ -43,9 +52,12 @@ export default function EditHabitDialog({ habit, onUpdate }: EditHabitDialogProp
   const [name, setName] = useState(habit.name)
   const [selectedIcon, setSelectedIcon] = useState(habit.icon)
   const [selectedColor, setSelectedColor] = useState(habit.color)
-  const [startDate, setStartDate] = useState<Date>(new Date(habit.start_date))
+  const [startDate, setStartDate] = useState<Date>(new Date(habit.start_date + 'T00:00:00'))
   const [loading, setLoading] = useState(false)
   const [showWarning, setShowWarning] = useState(false)
+  const [countEnabled, setCountEnabled] = useState(habit.count_enabled)
+  const [countMax, setCountMax] = useState<number>(habit.count_max ?? 3)
+  const [durationEnabled, setDurationEnabled] = useState(habit.duration_enabled)
 
   const originalStartDate = habit.start_date
 
@@ -59,7 +71,10 @@ export default function EditHabitDialog({ habit, onUpdate }: EditHabitDialogProp
       name,
       selectedIcon,
       selectedColor,
-      format(startDate, 'yyyy-MM-dd')
+      format(startDate, 'yyyy-MM-dd'),
+      countEnabled,
+      countEnabled ? countMax : null,
+      durationEnabled
     )
     setLoading(false)
     setOpen(false)
@@ -68,7 +83,6 @@ export default function EditHabitDialog({ habit, onUpdate }: EditHabitDialogProp
   const handleStartDateChange = (date: Date | undefined) => {
     if (date) {
       setStartDate(date)
-      // Show warning if changing from original
       if (format(date, 'yyyy-MM-dd') !== originalStartDate) {
         setShowWarning(true)
       } else {
@@ -174,11 +188,86 @@ export default function EditHabitDialog({ habit, onUpdate }: EditHabitDialogProp
                 <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
                 <div className="text-xs text-amber-800 dark:text-amber-200">
                   <strong>Note:</strong> Changing the start date will recalculate all statistics
-                  (streaks, percentages, etc.) for this habit. Dates before the new start date
-                  will show as grey dashes.
+                  (streaks, percentages, etc.) for this habit.
                 </div>
               </div>
             )}
+
+            {/* Tracking section */}
+            <div className="grid gap-3 pt-1">
+              <Label>Tracking</Label>
+
+              {/* Count tracking toggle */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Count tracking</p>
+                    <p className="text-xs text-muted-foreground">Log how many times per day</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCountEnabled((v) => !v)}
+                    className={cn(
+                      'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                      countEnabled ? 'bg-primary' : 'bg-muted'
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform',
+                        countEnabled ? 'translate-x-6' : 'translate-x-1'
+                      )}
+                    />
+                  </button>
+                </div>
+
+                {countEnabled && (
+                  <div className="flex items-center gap-2 pl-1">
+                    <span className="text-xs text-muted-foreground">Max per day:</span>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setCountMax(n)}
+                          className={cn(
+                            'w-8 h-8 rounded-md text-sm font-medium transition-colors',
+                            countMax === n
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-muted-foreground hover:bg-accent'
+                          )}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Duration tracking toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Duration tracking</p>
+                  <p className="text-xs text-muted-foreground">Log time spent in minutes</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDurationEnabled((v) => !v)}
+                  className={cn(
+                    'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                    durationEnabled ? 'bg-primary' : 'bg-muted'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform',
+                      durationEnabled ? 'translate-x-6' : 'translate-x-1'
+                    )}
+                  />
+                </button>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button type="submit" disabled={loading || !name.trim()}>
