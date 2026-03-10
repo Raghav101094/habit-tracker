@@ -81,18 +81,21 @@ export default function CalendarHeatmap({ habitId, startDate }: CalendarHeatmapP
 
   const allDays = generateAllDays()
   const months = generateMonths()
-  const habitStartDate = new Date(startDate)
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
 
   // Calculate stats
-  const validDays = allDays.filter(day => day >= habitStartDate && day <= new Date())
+  const validDays = allDays.filter(day => {
+    const dateStr = format(day, 'yyyy-MM-dd')
+    return dateStr >= startDate && dateStr <= todayStr
+  })
   const completedCount = validDays.filter(day => logs[format(day, 'yyyy-MM-dd')]).length
   const completionRate = validDays.length > 0 ? Math.round((completedCount / validDays.length) * 100) : 0
 
   const getDayStatus = (day: Date | null) => {
     if (!day) return 'empty'
     const dateStr = format(day, 'yyyy-MM-dd')
-    const isBeforeStart = day < habitStartDate
-    const isFuture = day > new Date()
+    const isBeforeStart = dateStr < startDate
+    const isFuture = dateStr > todayStr
     const isCompleted = logs[dateStr]
 
     if (isBeforeStart) return 'before-start'
